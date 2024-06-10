@@ -13,7 +13,7 @@ router.post("/otp/resend", otpValidation, usersController.resendOTP);
 router.put("/otp/validate", otpValidation, usersController.validateOTP);
 
 router.post("/signup", authValidation, usersController.signUp);
-router.post("/signin", usersController.signIn); // authValidation,
+router.post("/signin", authValidation, usersController.signIn);
 
 // router.get("/msg", contactsController.getContact);
 

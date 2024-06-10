@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const {plugin} = require("mongoose");
+// const {plugin} = require("mongoose");
 // const { SoftDelete } = require("soft-delete-mongoose-plugin");
 
 // //defined soft delete field name

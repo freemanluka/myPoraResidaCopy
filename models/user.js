@@ -8,7 +8,7 @@ const userSchema = mongoose.Schema(
         last_name: {type: String},
         email: {type: String},
         phone_number: {type: String},
-        subject: {type: String},
+        // subject: {type: String},
 
         isDeleted: {type: Boolean, default: false},
         DeletedAt: {type: Date, default: null},

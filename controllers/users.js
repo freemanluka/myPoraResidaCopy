@@ -1,6 +1,6 @@
 const userModel = require("../models/user");
 const otpModel = require("../models/otp");
-// const { userSignUpMsg,  signUpOtp } = require("../utils/emails/contact");
+const { userSignUpMsg,  signUpOtp } = require("../utils/emails/contact");
 
 const StatusCode = require("../utils/statusCodes");
 const { generateToken, generateOTP } = require("../utils/generateToken");
@@ -8,18 +8,18 @@ const bcrypt = require("bcrypt");
 
 const getOTP = async (req, res, next) => {
     const { email } = req.body;
-
+ 
     const OTP = await generateOTP();
     console.log(OTP)
 
-    const user = await userRepo.saveUser(data);
+    // const user = await userRepo.saveUser(data);
 
     await otpModel.create({
         email: email,
         otp: OTP,
         type: "Signup",
         created_at: new Date(),
-        otpExpiration: Date.now() + 12 + 60 * 1000, 
+        otpExpiresAt: Date.now() + 12 + 60 * 1000, 
     });
 
     /** 
@@ -29,7 +29,7 @@ const getOTP = async (req, res, next) => {
 
     return res.status(StatusCode.CREATED).json({
         status: true,
-        msg: "OTP sent successfully, check your email",
+        msg: "OTP has been sent to your email, use it to get validated!",
         // data: OTP,
     });
 };
@@ -44,7 +44,7 @@ const resendOTP = async (req, res) => {
     await otpModel.deleteMany({email:otpExist?.email});
 
     const OTP = await generateOTP();
-    // console.log(OTP)
+    console.log(OTP)
     await otpModel.create({
         email: email,
         otp: OTP,
@@ -64,30 +64,50 @@ const resendOTP = async (req, res) => {
 
 };
 
+
+
 const validateOTP = async (req, res) => {
     const {email, code} = req.body;
-    const otpExist = await otpModel.findOne({code: code});
+
+    try {
+         //Find the OTP record
+    const otp = await otpModel.findOne({ code });
     
-    if(otp == null) {
-
-      return res.status(StatusCode.BAD_REQUEST).json({
-        status: false,
-        msg: "Invalid OTP",
-      });
-    }
-
-    if(otp.email != email) {
+    if (!otp) {
         return res.status(StatusCode.BAD_REQUEST).json({
             status: false,
-            msg: "Invalid Credentials",
+            msg: "Invalid OTP or expired. Please request a new one.",
+        });
+    };
+
+    if (otp.code !== code) {
+        return res.status(StatusCode.BAD_REQUEST).json({
+            status: false,
+            msg: "Invalid OTP. Please check the code you entered.",
+        });
+    };
+
+
+    // if(otp == null) {
+    //   return res.status(StatusCode.BAD_REQUEST).json({
+    //     status: false,
+    //     msg: "Invalid OTP",
+    //   });
+    // }
+
+    if(otp.email !== email) {
+        return res.status(StatusCode.BAD_REQUEST).json({
+            status: false,
+            msg: "OTP does not match the provided email address.",
         });
     }
 
 
 
-    // delete OTP
-    await otpModel.deleteOne({code:code});
+    // Delete the OTP record after successful validation
+    await otpModel.deleteOne({ code });
 
+    
 
     
     return res.status(StatusCode.OK).json({
@@ -95,7 +115,13 @@ const validateOTP = async (req, res) => {
         msg: "OTP successfully validated",
     });
 
-
+    } catch (error) {
+    console.error("Error validating OTP:", error);
+    return res.status(StatusCode.INTERNAL_SERVER_ERROR).json({
+        status: false,
+        msg: "An error occurred while validating the OTP.",
+    });
+}
 
 };
 
@@ -113,15 +139,15 @@ const signUp = async (req, res, next) => {
     } else {
     }
 
-    const salt = await bcrypt.generateSaltSync(10);
+    const salt = await bcrypt.genSaltSync(10);
 
-    const harshedPassword = await bcrypt.harshed(password, salt);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-    // console.log({harshedPassword})
+    console.log({hashedPassword})
 
     const saveUser = await userModel.create({
         email: email,
-        password:  harshedPassword,
+        password: hashedPassword,
     });
 
     await userSignUpMsg(email);
